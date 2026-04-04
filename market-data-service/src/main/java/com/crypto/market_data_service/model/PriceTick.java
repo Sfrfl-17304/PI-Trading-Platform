@@ -9,6 +9,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PriceTick {
+    private String source;
     private String symbol;
     private double price;
     private Instant timestamp;

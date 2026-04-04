@@ -1,21 +1,19 @@
 spring:
+  threads:
+    virtual:
+      enabled: true
   application:
     name: market-data-service
 
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+influx:
+  url: http://localhost:8086
+  token: my-super-secret-token
+  org: my-org
+  bucket: crypto-bucket
 
-  influxdb:
-    url: http://localhost:8086
-    token: my-token
-    org: my-org
-    bucket: crypto-bucket
+market:
+  real-symbols:
+    - BTCUSDT
+    - ETHUSDT
+  simulated-count: 5
 
-  market:
-    real-symbols:
-      - BTCUSDT
-      - ETHUSDT
-    simulated-count: 5

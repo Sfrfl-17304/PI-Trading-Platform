@@ -20,6 +20,11 @@ public class BinancePriceFetcher implements PriceFetcher {
             throw new RuntimeException("Réponse invalide de Binance pour " + symbol);
         }
         double price = Double.parseDouble(response.get("price"));
-        return new PriceTick(symbol, price, Instant.now());
+        return new PriceTick("BINANCE",symbol, price, Instant.now());
+    }
+
+    @Override
+    public String getSourceType(){
+        return "binance";
     }
 }
