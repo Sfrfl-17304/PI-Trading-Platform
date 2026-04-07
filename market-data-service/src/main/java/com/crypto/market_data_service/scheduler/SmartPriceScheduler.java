@@ -37,7 +37,7 @@ public class SmartPriceScheduler {
         this.kafkaTemplate = kafkaTemplate;
         this.influxDBWriter = influxDBWriter;
     }
-    @Scheduled(fixedDelay = 200)
+    @Scheduled(fixedDelay = 5000)
     public void fetchAllPrices() {
         long start =System.currentTimeMillis();
         List<Runnable> tasks =new ArrayList<>();

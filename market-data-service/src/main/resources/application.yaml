@@ -2,14 +2,19 @@ spring:
   threads:
     virtual:
       enabled: true
+  kafka:
+    bootstrap-servers:
+    - ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    
   application:
     name: market-data-service
 
+
 influx:
-  url: http://localhost:8086
-  token: my-super-secret-token
-  org: my-org
-  bucket: crypto-bucket
+  url: ${INFLUX_URL:http://localhost:8086}
+  token: ${INFLUX_TOKEN:my-super-secret-token}
+  org: ${INFLUX_ORG:my-org}
+  bucket: ${INFLUX_BUCKET:crypto-bucket}
 
 market:
   real-symbols:
