@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="4ddce077-3693-4d04-8c1c-e6a400121bba" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/market-data-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/market-data-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/market-data-service/src/main/java/com/crypto/market_data_service/model/PriceTick.java" beforeDir="false" afterPath="$PROJECT_DIR$/market-data-service/src/main/java/com/crypto/market_data_service/model/PriceTick.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/market-data-service/src/main/java/com/crypto/market_data_service/scheduler/PriceScheduler.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/market-data-service/src/main/java/com/crypto/market_data_service/service/BinancePriceFetcher.java" beforeDir="false" afterPath="$PROJECT_DIR$/market-data-service/src/main/java/com/crypto/market_data_service/service/BinancePriceFetcher.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/market-data-service/src/main/java/com/crypto/market_data_service/service/PriceFetcher.java" beforeDir="false" afterPath="$PROJECT_DIR$/market-data-service/src/main/java/com/crypto/market_data_service/service/PriceFetcher.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/market-data-service/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/market-data-service/src/main/resources/application.yaml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 3,
+  "fromUser": false
+}]]></component>
+  <component name="ProjectId" id="3BraJhcjYu1oPsE04tgVe0W0R5t" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "git-widget-placeholder": "Market-Data-Service",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/yassi/Documents/PI/PI-Trading-Platform",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.32098.37" />
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-IU-253.32098.37" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="4ddce077-3693-4d04-8c1c-e6a400121bba" name="Changes" comment="" />
+      <created>1775249572832</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1775249572832</updated>
+      <workItem from="1775249573866" duration="248000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

@@ -1,21 +1,24 @@
 spring:
+  threads:
+    virtual:
+      enabled: true
+  kafka:
+    bootstrap-servers:
+    - ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    
   application:
     name: market-data-service
 
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-  influxdb:
-    url: http://localhost:8086
-    token: my-token
-    org: my-org
-    bucket: crypto-bucket
+influx:
+  url: ${INFLUX_URL:http://localhost:8086}
+  token: ${INFLUX_TOKEN:my-super-secret-token}
+  org: ${INFLUX_ORG:my-org}
+  bucket: ${INFLUX_BUCKET:crypto-bucket}
 
-  market:
-    real-symbols:
-      - BTCUSDT
-      - ETHUSDT
-    simulated-count: 5
+market:
+  real-symbols:
+    - BTCUSDT
+    - ETHUSDT
+  simulated-count: 5
+
