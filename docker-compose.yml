@@ -63,6 +63,24 @@ services:
     networks:
       - crypto-net
 
+  user-service:
+    build:
+      context: ./user-service
+    container_name: user-service
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/crypto
+      DB_USERNAME: user
+      DB_PASSWORD: password
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      JWT_SECRET: change-me-please-change-me-please-change-me-please
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - crypto-net
+
 volumes:
   influxdb-data:
   postgres-data:
