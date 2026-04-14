@@ -4,6 +4,7 @@ import com.crypto.market_data_service.model.PriceTick;
 import com.crypto.market_data_service.service.InfluxDBWriter;
 import com.crypto.market_data_service.service.PriceFetcher;
 import com.crypto.market_data_service.service.PriceFetcherSelector;
+import com.crypto.market_data_service.service.PriceStore;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,17 +26,19 @@ public class SmartPriceScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(SmartPriceScheduler.class);
 
-    
+
     private PriceFetcherSelector selector;
     private KafkaTemplate<String, String> kafkaTemplate;
     private InfluxDBWriter influxDBWriter;
-    
+    private PriceStore priceStore;
+
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-    
-    public SmartPriceScheduler(PriceFetcherSelector selector,KafkaTemplate<String, String> kafkaTemplate,InfluxDBWriter influxDBWriter) {
+
+    public SmartPriceScheduler(PriceFetcherSelector selector,KafkaTemplate<String, String> kafkaTemplate,InfluxDBWriter influxDBWriter, PriceStore priceStore) {
         this.selector = selector;
         this.kafkaTemplate = kafkaTemplate;
         this.influxDBWriter = influxDBWriter;
+        this.priceStore = priceStore;
     }
     @Scheduled(fixedDelay = 5000)
     public void fetchAllPrices() {
@@ -66,6 +69,7 @@ public class SmartPriceScheduler {
             kafkaTemplate.send(topic,tick.getSource(), json);
             log.info("Prix publié sur topic {} : {} -> {} $ (source: {})",topic, tick.getSymbol(), tick.getPrice(), tick.getSource());
             influxDBWriter.write(tick);
+            priceStore.update(tick);
         } catch (Exception e) {
             log.error("Erreur pour {} (source: {}) : {}", symbol,
                     (fetcher != null ? fetcher.getSourceType() : "inconnu"), e.getMessage());
