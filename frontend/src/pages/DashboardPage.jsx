@@ -1,12 +1,28 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createChart, LineSeries } from "lightweight-charts";
 import api_market from "../services/market_axios";
 
 function DashboardPage() {
   const [prices, setPrices] = useState([]);
+  const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
+
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
   const lineSeriesRef = useRef(null);
+
+  // Build symbol options from current prices
+  const symbols = useMemo(() => {
+    const unique = new Set(prices.map((p) => p.symbol).filter(Boolean));
+    return Array.from(unique).sort();
+  }, [prices]);
+
+  // Keep a valid selected symbol
+  useEffect(() => {
+    if (!symbols.length) return;
+    if (!selectedSymbol || !symbols.includes(selectedSymbol)) {
+      setSelectedSymbol(symbols[0]);
+    }
+  }, [symbols, selectedSymbol]);
 
   // Build chart once
   useEffect(() => {
@@ -33,7 +49,7 @@ function DashboardPage() {
       },
     });
 
-    const lineSeries = chart.addSeries(LineSeries,{
+    const lineSeries = chart.addSeries(LineSeries, {
       color: "#22c55e",
       lineWidth: 2,
     });
@@ -58,6 +74,12 @@ function DashboardPage() {
     };
   }, []);
 
+  // Optional: clear existing line when switching symbol
+  useEffect(() => {
+    if (!lineSeriesRef.current) return;
+    lineSeriesRef.current.setData([]);
+  }, [selectedSymbol]);
+
   // Poll latest prices and update both list + chart
   useEffect(() => {
     const fetchPrice = async () => {
@@ -69,7 +91,9 @@ function DashboardPage() {
         if (!lineSeriesRef.current || !latest?.length) return;
 
         // Pick one asset to chart
-        const primaryAsset = latest[0];
+        const primaryAsset = latest.find(a => a.symbol === selectedSymbol);
+        if (!primaryAsset) return;
+
         const value = Number(primaryAsset.price);
         if (Number.isNaN(value)) return;
 
@@ -85,12 +109,40 @@ function DashboardPage() {
     fetchPrice();
     const intervalId = setInterval(fetchPrice, 5000);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [selectedSymbol]);
 
   return (
     <div style={{ padding: "1rem" }}>
       <h1 style={{ marginBottom: "1rem" }}>Live prices</h1>
 
+      <div style={{ marginBottom: "0.75rem" }}>
+        <label htmlFor="symbol-select" style={{ marginRight: "0.5rem" }}>
+          Currency:
+        </label>
+        <select
+          id="symbol-select"
+          value={selectedSymbol}
+          onChange={(e) => setSelectedSymbol(e.target.value)}
+          disabled={!symbols.length}
+          style={{
+            padding: "0.4rem 0.6rem",
+            borderRadius: "0.5rem",
+            border: "1px solid #334155",
+            background: "#0f172a",
+            color: "#e2e8f0",
+          }}
+        >
+          {!symbols.length ? (
+            <option value="">Loading...</option>
+          ) : (
+            symbols.map((sym) => (
+              <option key={sym} value={sym}>
+                {sym}
+              </option>
+            ))
+          )}
+        </select>
+      </div>
       <div
         ref={chartContainerRef}
         style={{
