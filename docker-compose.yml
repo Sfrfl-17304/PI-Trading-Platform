@@ -123,6 +123,22 @@ services:
     networks:
       - crypto-net
 
+  historical-service:
+    build: ./historical-service
+    container_name: historical-service
+    ports:
+      - "8087:8087"
+    environment:
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_TOKEN: my-super-secret-token
+      INFLUX_ORG: my-org
+      INFLUX_BUCKET: crypto-bucket
+      INFLUX_MEASUREMENT: price_ticks
+    depends_on:
+      - influxdb
+    networks:
+      - crypto-net
+
 volumes:
   influxdb-data:
   postgres-data:
