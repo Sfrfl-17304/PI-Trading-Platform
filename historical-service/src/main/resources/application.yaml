@@ -1,0 +1,13 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: historical-service
+
+influx:
+  url: ${INFLUX_URL:http://localhost:8086}
+  token: ${INFLUX_TOKEN:my-super-secret-token}
+  org: ${INFLUX_ORG:my-org}
+  bucket: ${INFLUX_BUCKET:crypto-bucket}     
+  measurement: ${INFLUX_MEASUREMENT:price_ticks}                  
