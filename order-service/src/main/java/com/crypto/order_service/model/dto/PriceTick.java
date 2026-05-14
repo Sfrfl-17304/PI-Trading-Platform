@@ -1,0 +1,16 @@
+package com.crypto.order_service.model.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.time.Instant;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PriceTick {
+    private String source;
+    private String symbol;
+    private double price;
+    private Instant timestamp;
+}

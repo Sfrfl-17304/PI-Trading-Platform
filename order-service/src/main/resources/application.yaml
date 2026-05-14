@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: order-service
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/crypto}
+    username: ${DB_USERNAME:user}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+        spring.json.trusted.packages: "com.crypto.order_service.model.event"
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:order-service-group}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.crypto.order_service.model.dto"
+        spring.json.value.default.type: "com.crypto.order_service.model.dto.PriceTick"
+
+server:
+  port: ${SERVER_PORT:8082}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-me-please-change-me-please-change-me-please}
+  kafka:
+    topics:
+      raw-prices: raw-prices
+      order-triggers: order-triggers
+      balance-update: balance-update
+  feign:
+    user-service:
+      url: ${USER_SERVICE_URL:http://localhost:8081}
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.springframework.data.redis: DEBUG
+    org.apache.kafka: WARN
