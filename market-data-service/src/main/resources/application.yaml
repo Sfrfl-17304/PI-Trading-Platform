@@ -5,7 +5,8 @@ spring:
   kafka:
     bootstrap-servers:
     - ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    
+    - ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
+
   application:
     name: market-data-service
 
@@ -21,4 +22,3 @@ market:
     - BTCUSDT
     - ETHUSDT
   simulated-count: 5
-
