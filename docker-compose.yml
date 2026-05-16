@@ -26,7 +26,6 @@ services:
     networks:
       - crypto-net
 
-
   market-data-service:
     build: ./market-data-service
     container_name: market-data-service
@@ -101,7 +100,6 @@ services:
     networks:
       - crypto-net
 
-
   order-service:
     build: ./order-service
     container_name: order-service
@@ -136,6 +134,22 @@ services:
       INFLUX_MEASUREMENT: price_ticks
     depends_on:
       - influxdb
+    networks:
+      - crypto-net
+
+  notification-service:
+    build:
+      context: ./notification-service
+    container_name: notification-service
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "8084:8084"
+    depends_on:
+      - kafka
+      - redis
     networks:
       - crypto-net
 
