@@ -1,0 +1,246 @@
+# ==========================================
+# MICROSERVICES MANIFESTS
+# ==========================================
+
+---
+# 1. User Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+spec:
+  ports:
+    - port: 8081
+  selector:
+    app: user-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: myplatform/user-service:latest
+          env:
+            - name: DB_URL
+              value: jdbc:postgresql://postgres:5432/crypto
+            - name: DB_USERNAME
+              value: user
+            - name: DB_PASSWORD
+              value: password
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:9092
+            - name: JWT_SECRET
+              value: change-me-please-change-me-please-change-me-please
+          ports:
+            - containerPort: 8081
+
+---
+# 2. Order Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+spec:
+  ports:
+    - port: 8082
+  selector:
+    app: order-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+        - name: order-service
+          image: myplatform/order-service:latest
+          env:
+            - name: DB_URL
+              value: jdbc:postgresql://postgres:5432/crypto
+            - name: DB_USERNAME
+              value: user
+            - name: DB_PASSWORD
+              value: password
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:9092
+            - name: JWT_SECRET
+              value: change-me-please-change-me-please-change-me-please
+            - name: USER_SERVICE_URL
+              value: http://user-service:8081
+            - name: REDIS_HOST
+              value: redis
+            - name: REDIS_PORT
+              value: "6379"
+          ports:
+            - containerPort: 8082
+
+---
+# 3. Prediction Service & Python API
+apiVersion: v1
+kind: Service
+metadata:
+  name: prediction-service
+spec:
+  ports:
+    - port: 8085
+  selector:
+    app: prediction-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prediction-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prediction-service
+  template:
+    metadata:
+      labels:
+        app: prediction-service
+    spec:
+      containers:
+        - name: prediction-service
+          image: myplatform/prediction-service:latest
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:9092
+            - name: PYTHON_API_URL
+              value: http://python-model-api:5000/predict
+            - name: HISTORICAL_SERVICE_URL
+              value: http://historical-service:8087
+          ports:
+            - containerPort: 8085
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: python-model-api
+spec:
+  ports:
+    - port: 5000
+  selector:
+    app: python-model-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-model-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python-model-api
+  template:
+    metadata:
+      labels:
+        app: python-model-api
+    spec:
+      containers:
+        - name: python-model-api
+          image: myplatform/python-model-api:latest
+          ports:
+            - containerPort: 5000
+
+---
+# 4. Notification Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+spec:
+  ports:
+    - port: 8084
+  selector:
+    app: notification-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: myplatform/notification-service:latest
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:9092
+            - name: REDIS_HOST
+              value: redis
+            - name: REDIS_PORT
+              value: "6379"
+          ports:
+            - containerPort: 8084
+
+---
+# 5. Historical & Market Data Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: historical-service
+spec:
+  ports:
+    - port: 8087
+  selector:
+    app: historical-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: historical-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: historical-service
+  template:
+    metadata:
+      labels:
+        app: historical-service
+    spec:
+      containers:
+        - name: historical-service
+          image: myplatform/historical-service:latest
+          env:
+            - name: INFLUX_URL
+              value: http://influxdb:8086
+            - name: INFLUX_TOKEN
+              value: my-super-secret-token
+            - name: INFLUX_ORG
+              value: my-org
+            - name: INFLUX_BUCKET
+              value: crypto-bucket
+            - name: INFLUX_MEASUREMENT
+              value: price_ticks
+          ports:
+            - containerPort: 8087
