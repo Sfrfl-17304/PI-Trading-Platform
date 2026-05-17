@@ -153,6 +153,30 @@ services:
     networks:
       - crypto-net
 
+  python-model-api:
+    build:
+      context: ./python-model-api
+    container_name: python-model-api
+    ports:
+      - "5000:5000"
+    networks:
+      - crypto-net
+
+  prediction-service:
+    build:
+      context: ./prediction-service
+    container_name: prediction-service
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      PYTHON_API_URL: http://python-model-api:5000/predict
+    ports:
+      - "8085:8085"
+    depends_on:
+      - kafka
+      - python-model-api
+    networks:
+      - crypto-net
+
 volumes:
   influxdb-data:
   postgres-data:
