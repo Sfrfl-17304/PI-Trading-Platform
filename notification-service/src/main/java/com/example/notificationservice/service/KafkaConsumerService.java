@@ -3,10 +3,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.Map;
 
 @Service
 public class KafkaConsumerService {
+    private static final Logger logger = LoggerFactory.getLogger(KafkaConsumerService.class);
     private final SimpMessagingTemplate mt;
     private final ObjectMapper om;
     private final NotificationService ns;
@@ -21,7 +24,9 @@ public class KafkaConsumerService {
             Map p = om.readValue(msg, Map.class);
             mt.convertAndSend("/topic/admin-alerts", p);
             if (p.containsKey("userId")) ns.saveNotification(p.get("userId").toString(), "Welcome!", "USER_REGISTERED");
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            logger.error("Error processing user-events message: {}", msg, e);
+        }
     }
 
     @KafkaListener(topics = "prediction-events", groupId = "notification-group")
@@ -29,7 +34,9 @@ public class KafkaConsumerService {
         try {
             Map p = om.readValue(msg, Map.class);
             mt.convertAndSend("/topic/predictions", p);
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            logger.error("Error processing prediction-events message: {}", msg, e);
+        }
     }
 
     @KafkaListener(topics = "order-events", groupId = "notification-group")
@@ -41,6 +48,8 @@ public class KafkaConsumerService {
                 mt.convertAndSendToUser(uid, "/queue/orders", p);
                 ns.saveNotification(uid, "Order updated", "ORDER_UPDATE");
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            logger.error("Error processing order-events message: {}", msg, e);
+        }
     }
 }
