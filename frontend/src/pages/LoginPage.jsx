@@ -18,8 +18,13 @@ function LoginPage() {
 
       navigate("/dashboard");
     } catch (err) {
-      console.error(err);
-      setError("Invalid username or password. Please try again.");
+      if (err.response?.status === 401) {
+        setError("Invalid username or password. Please try again.");
+      } else {
+        setError(
+          "Server is unreachable. Please check your internet connection.",
+        );
+      }
     }
   };
 

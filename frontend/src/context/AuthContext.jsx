@@ -13,22 +13,40 @@ export function AuthProvider({ children }) {
     return localStorage.getItem("username") || null;
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+
   async function login(username, password) {
-    const response = await api_user.post("/api/auth/login", { username, password });
-    if (!response) return "No login found";
+    // Turn true immediately to freeze the UI and show a loading spinner
+    setIsLoading(true);
+    try {
+      const response = await api_user.post("/api/auth/login", {
+        username,
+        password,
+      });
+      if (!response || !response.data) {
+        throw new Error("No data received from login server");
+      }
 
-    const token = response.data.accessToken;
+      const token = response.data.accessToken;
 
-    localStorage.setItem("token", token);
+      localStorage.setItem("token", token);
 
-    const set_username = await api_user.get("/api/users/me", {
-      headers: { Authorization: "Bearer " + token },
-    });
+      const set_username = await api_user.get("/api/users/me", {
+        headers: { Authorization: "Bearer " + token },
+      });
 
-    localStorage.setItem("username", set_username.data.username);
+      localStorage.setItem("username", set_username.data.username);
 
-    setToken(token);
-    setUsername(set_username.data.username);
+      setToken(token);
+      setUsername(set_username.data.username);
+
+      return true;
+    } catch (error) {
+      console.error("Login sequence failed:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function logout() {
@@ -42,6 +60,7 @@ export function AuthProvider({ children }) {
   const value = {
     token,
     username,
+    isLoading,
     login,
     logout,
   };
