@@ -17,12 +17,9 @@ function DashboardPage() {
   }, [prices]);
 
   // Keep a valid selected symbol
-  useEffect(() => {
-    if (!symbols.length) return;
-    if (!selectedSymbol || !symbols.includes(selectedSymbol)) {
-      setSelectedSymbol(symbols[0]);
-    }
-  }, [symbols, selectedSymbol]);
+  const activeSymbol = symbols.includes(selectedSymbol)
+    ? selectedSymbol
+    : symbols[0] || selectedSymbol;
 
   // Build chart once
   useEffect(() => {
@@ -74,24 +71,29 @@ function DashboardPage() {
     };
   }, []);
 
-  // Optional: clear existing line when switching symbol
-  useEffect(() => {
-    if (!lineSeriesRef.current) return;
-    lineSeriesRef.current.setData([]);
-  }, [selectedSymbol]);
-
   // Poll latest prices and update both list + chart
   useEffect(() => {
+    let isCurrent = true;
+
+    // Clear existing data immediately when activeSymbol changes
+    if (lineSeriesRef.current) {
+      lineSeriesRef.current.setData([]);
+    }
+
     const fetchPrice = async () => {
       try {
         const response = await api_market.get("prices/latest");
         const latest = response.data;
+
+        // 2. If the user changed symbols while this request was running, drop it
+        if (!isCurrent) return;
+
         setPrices(latest);
 
         if (!lineSeriesRef.current || !latest?.length) return;
 
         // Pick one asset to chart
-        const primaryAsset = latest.find(a => a.symbol === selectedSymbol);
+        const primaryAsset = latest.find((a) => a.symbol === activeSymbol);
         if (!primaryAsset) return;
 
         const value = Number(primaryAsset.price);
@@ -108,8 +110,11 @@ function DashboardPage() {
 
     fetchPrice();
     const intervalId = setInterval(fetchPrice, 5000);
-    return () => clearInterval(intervalId);
-  }, [selectedSymbol]);
+    return () => {
+      isCurrent = false;
+      clearInterval(intervalId);
+    };
+  }, [activeSymbol]);
 
   return (
     <div style={{ padding: "1rem" }}>
@@ -121,7 +126,7 @@ function DashboardPage() {
         </label>
         <select
           id="symbol-select"
-          value={selectedSymbol}
+          value={activeSymbol}
           onChange={(e) => setSelectedSymbol(e.target.value)}
           disabled={!symbols.length}
           style={{
