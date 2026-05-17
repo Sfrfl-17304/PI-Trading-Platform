@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createChart, LineSeries } from "lightweight-charts";
 import api_market from "../services/market_axios";
+import { getHistoricalPrices } from "../services/historicalService";
 
 function DashboardPage() {
   const [prices, setPrices] = useState([]);
@@ -71,14 +72,28 @@ function DashboardPage() {
     };
   }, []);
 
+  // Load historical data when symbol changes
+  useEffect(() => {
+    if (!lineSeriesRef.current) return;
+    lineSeriesRef.current.setData([]);
+
+    const end = new Date();
+    const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+
+    getHistoricalPrices(activeSymbol, start, end)
+      .then((points) => {
+        if (!lineSeriesRef.current || !points?.length) return;
+        const data = points
+          .map((p) => ({ time: Math.floor(p.timestamp / 1000), value: p.price }))
+          .sort((a, b) => a.time - b.time);
+        lineSeriesRef.current.setData(data);
+      })
+      .catch((err) => console.error("Historical fetch error:", err));
+  }, [activeSymbol]);
+
   // Poll latest prices and update both list + chart
   useEffect(() => {
     let isCurrent = true;
-
-    // Clear existing data immediately when activeSymbol changes
-    if (lineSeriesRef.current) {
-      lineSeriesRef.current.setData([]);
-    }
 
     const fetchPrice = async () => {
       try {

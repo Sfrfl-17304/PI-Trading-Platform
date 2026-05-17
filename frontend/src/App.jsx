@@ -24,7 +24,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/orders" element={<><OrdersPage /></>} />
+          <Route
+            path="/orders"
+            element={
+              <ProtectedRoute>
+                <OrdersPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
