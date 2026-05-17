@@ -2,10 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createChart, LineSeries } from "lightweight-charts";
 import api_market from "../services/market_axios";
 import { getHistoricalPrices } from "../services/historicalService";
+import { getPrediction } from "../services/predictionService";
 
 function DashboardPage() {
   const [prices, setPrices] = useState([]);
   const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
+
+  const [prediction, setPrediction] = useState(null);
+  const [predictionLoading, setPredictionLoading] = useState(false);
 
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
@@ -19,6 +23,15 @@ function DashboardPage() {
   const activeSymbol = symbols.includes(selectedSymbol)
     ? selectedSymbol
     : symbols[0] || selectedSymbol;
+
+  useEffect(() => {
+    setPrediction(null);
+    setPredictionLoading(true);
+    getPrediction(activeSymbol)
+      .then((signal) => setPrediction(signal))
+      .catch((err) => console.error("Prediction error:", err))
+      .finally(() => setPredictionLoading(false));
+  }, [activeSymbol]);
 
   // Build chart once
   useEffect(() => {
@@ -53,7 +66,9 @@ function DashboardPage() {
 
     const handleResize = () => {
       if (!chartContainerRef.current || !chartRef.current) return;
-      chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
+      chartRef.current.applyOptions({
+        width: chartContainerRef.current.clientWidth,
+      });
     };
 
     window.addEventListener("resize", handleResize);
@@ -77,7 +92,10 @@ function DashboardPage() {
       .then((points) => {
         if (!lineSeriesRef.current || !points?.length) return;
         const data = points
-          .map((p) => ({ time: Math.floor(p.timestamp / 1000), value: p.price }))
+          .map((p) => ({
+            time: Math.floor(p.timestamp / 1000),
+            value: p.price,
+          }))
           .sort((a, b) => a.time - b.time);
         lineSeriesRef.current.setData(data);
       })
@@ -103,7 +121,10 @@ function DashboardPage() {
         const value = Number(primaryAsset.price);
         if (Number.isNaN(value)) return;
 
-        lineSeriesRef.current.update({ time: Math.floor(Date.now() / 1000), value });
+        lineSeriesRef.current.update({
+          time: Math.floor(Date.now() / 1000),
+          value,
+        });
       } catch (error) {
         console.error("Error fetching price:", error);
       }
@@ -137,7 +158,7 @@ function DashboardPage() {
             <button
               key={`${asset.source}-${asset.symbol}`}
               onClick={() => setSelectedSymbol(asset.symbol)}
-              className={`text-left border rounded-xl px-4 py-3 transition-all cursor-pointer min-w-[130px] ${
+              className={`text-left border rounded-xl px-4 py-3 transition-all cursor-pointer min-w-32.5 ${
                 asset.symbol === activeSymbol
                   ? "bg-slate-800 border-green-500/40"
                   : "bg-slate-900 border-slate-800 hover:border-slate-700"
@@ -145,7 +166,11 @@ function DashboardPage() {
             >
               <p className="text-slate-500 text-xs">{asset.symbol}</p>
               <p className="text-white font-semibold text-sm mt-0.5">
-                ${Number(asset.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                $
+                {Number(asset.price).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </p>
             </button>
           ))
@@ -156,11 +181,33 @@ function DashboardPage() {
 
       {/* Selected price hero */}
       {selectedPrice && (
-        <div className="mb-3">
-          <p className="text-slate-500 text-xs mb-1">{activeSymbol}</p>
-          <span className="text-3xl font-bold text-white">
-            ${Number(selectedPrice.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
+        <div className="flex items-start gap-8 mb-3">
+          <div>
+            <p className="text-slate-500 text-xs mb-1">{activeSymbol}</p>
+            <span className="text-3xl font-bold text-white">
+              ${Number(selectedPrice.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+
+          <div className="border-l border-slate-800 pl-8">
+            <p className="text-slate-500 text-xs mb-1">AI Signal</p>
+            {predictionLoading ? (
+              <p className="text-slate-600 text-sm">Analysing...</p>
+            ) : prediction ? (
+              <div className="flex items-baseline gap-2">
+                <span className={`text-2xl font-bold ${
+                  prediction.action === "BUY" ? "text-green-400" :
+                  prediction.action === "SELL" ? "text-red-400" :
+                  "text-amber-400"
+                }`}>
+                  {prediction.action}
+                </span>
+                <span className="text-slate-400 text-sm">
+                  {Math.round(prediction.confidence * 100)}% confidence
+                </span>
+              </div>
+            ) : null}
+          </div>
         </div>
       )}
 

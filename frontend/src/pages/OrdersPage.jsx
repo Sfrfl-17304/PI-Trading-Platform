@@ -25,6 +25,8 @@ function OrdersPage() {
 
   useEffect(() => {
     fetchOrders();
+    const interval = setInterval(fetchOrders, 10000);
+    return () => clearInterval(interval);
   }, [status_filter]);
 
   const handleCreateOrder = async (e) => {

@@ -22,6 +22,7 @@ function formatMessage(data) {
 export function useNotifications(token) {
   const [notifications, setNotifications] = useState([]);
   const clientRef = useRef(null);
+  const seenOrderIds = useRef(new Set());
 
   useEffect(() => {
     if (!token) return;
@@ -34,6 +35,12 @@ export function useNotifications(token) {
       onConnect: () => {
         client.subscribe(`/topic/orders/${userId}`, (message) => {
           const data = JSON.parse(message.body);
+
+          if (data.orderId) {
+            if (seenOrderIds.current.has(data.orderId)) return;
+            seenOrderIds.current.add(data.orderId);
+          }
+
           setNotifications((prev) =>
             [
               {
