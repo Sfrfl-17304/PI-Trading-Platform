@@ -14,3 +14,9 @@ spring:
 
 server:
   port: 8085
+
+# Prediction model configuration
+ml:
+  model:
+    path: classpath:models/prediction_model.pt
+    window-size: 14
