@@ -169,11 +169,13 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       PYTHON_API_URL: http://python-model-api:5000/predict
+      HISTORICAL_SERVICE_URL: http://historical-service:8087
     ports:
       - "8085:8085"
     depends_on:
       - kafka
       - python-model-api
+      - historical-service
     networks:
       - crypto-net
 
