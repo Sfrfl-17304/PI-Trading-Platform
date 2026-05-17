@@ -39,7 +39,7 @@ public class KafkaConsumerService {
         }
     }
 
-    @KafkaListener(topics = "order-events", groupId = "notification-group")
+    @KafkaListener(topics = "order-triggers", groupId = "notification-group")
     public void consumeOrderEvents(String msg) {
         try {
             Map p = om.readValue(msg, Map.class);
