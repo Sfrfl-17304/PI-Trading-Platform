@@ -1,0 +1,1488 @@
+\documentclass[12pt,a4paper,twoside]{report}
+\usepackage[utf-8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{tocloft}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{booktabs}
+
+\geometry{margin=1in}
+
+% Code formatting
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    backgroundcolor=\color{lightgray!20},
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    captionpos=b,
+    frame=single,
+    rulecolor=\color{black!30}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{PI Trading Platform}
+\lhead{Rapport Technique}
+\cfoot{\thepage}
+
+\title{
+    \textbf{Plateforme de Trading PI} \\
+    \large Microservices Distribués avec Intelligence Artificielle \\
+    \normalsize Rapport Technique Complet \\
+    \vspace{0.5cm}
+    \normalsize Mai 2026
+}
+\author{Équipe de Développement}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+% ================================================================================
+% EXECUTIVE SUMMARY
+% ================================================================================
+\chapter{Résumé Exécutif}
+
+\section{Vision du Projet}
+La plateforme PI Trading est un écosystème de microservices distribués conçu pour fournir une solution complète de trading de cryptomonnaies en temps réel. Le système combine des algorithmes de prédiction avancés (EMA, RSI, ARIMA), une orchestration par Kafka, et une architecture hautement scalable basée sur les conteneurs Docker.
+
+\section{Objectifs Principaux}
+\begin{itemize}
+    \item Développer une API REST sécurisée pour la gestion des ordres de trading
+    \item Implémenter un moteur de prédiction basé sur le machine learning et l'analyse technique
+    \item Fournir des notifications en temps réel via WebSocket
+    \item Assurer la persistance des données historiques et des soldes utilisateur
+    \item Maintenir la cohérence des données à travers les services via Kafka
+\end{itemize}
+
+\section{Architecture Générale}
+L'architecture repose sur 7 microservices indépendants orchestrés via Docker Compose :
+
+\begin{itemize}
+    \item \textbf{User Service} : Authentification, gestion des profils et des soldes
+    \item \textbf{Order Service} : Moteur de trading avec stop-loss/take-profit
+    \item \textbf{Prediction Service} : Consensus d'algorithmes de prédiction
+    \item \textbf{Notification Service} : Push en temps réel via WebSocket
+    \item \textbf{Market Data Service} : Agrégation des données de marché
+    \item \textbf{Historical Service} : Base de données temporelle (InfluxDB)
+    \item \textbf{Python ML API} : Serveur ARIMA léger et autonome
+\end{itemize}
+
+% ================================================================================
+% CAHIER DE CHARGE
+% ================================================================================
+\chapter{Cahier de Charge}
+
+\section{Fonctionnalités Requises}
+
+\subsection{Authentification et Sécurité}
+\begin{itemize}
+    \item Authentification basée JWT avec refresh tokens
+    \item Endpoints protégés avec validation de token
+    \item Gestion sécurisée des mots de passe (hashage bcrypt)
+    \item Isolation des données utilisateur
+\end{itemize}
+
+\subsection{Gestion des Ordres}
+\begin{itemize}
+    \item Création d'ordres d'achat/vente avec montants configurables
+    \item Support des ordres avec stop-loss et take-profit
+    \item Suivi du statut en temps réel : OPEN, CLOSED, CANCELLED
+    \item Annulation d'ordres en cours
+    \item Listing des ordres avec filtrage par statut
+\end{itemize}
+
+\subsection{Prédictions et Analyse}
+\begin{itemize}
+    \item Implémentation d'EMA (Exponential Moving Average)
+    \item Implémentation de RSI (Relative Strength Index)
+    \item Modèle ARIMA pour la prévision des prix
+    \item Consensus algorithm combinant les trois approches
+    \item Deux modes de prédiction : autonome ou avec données personnalisées
+\end{itemize}
+
+\subsection{Notifications Temps Réel}
+\begin{itemize}
+    \item WebSocket STOMP/SockJS pour les connexions bidirectionnelles
+    \item Push des alertes d'ordres aux utilisateurs
+    \item Diffusion des signaux de prédiction
+    \item Notifications administratives
+\end{itemize}
+
+\subsection{Historique et Données}
+\begin{itemize}
+    \item Stockage des ticks de prix avec timestamps
+    \item Agrégation des données par intervalle (1m, 5m, 15m, 1h, 1d)
+    \item Interrogation flexible des données historiques
+    \item Pas de limite de rétention (InfluxDB)
+\end{itemize}
+
+\section{Contraintes Techniques}
+\begin{itemize}
+    \item Java 21 minimum pour les services Spring Boot
+    \item Python 3.10+ pour le serveur ARIMA
+    \item Docker 20.10+ avec Docker Compose
+    \item Latence réseau acceptable entre services ($<$ 100ms)
+    \item Haute disponibilité des services critiques
+\end{itemize}
+
+% ================================================================================
+% TECHNOLOGIES
+% ================================================================================
+\chapter{Stack Technologique}
+
+\section{Backend}
+
+\subsection{Spring Boot 3.2.8}
+Framework Java moderne pour les microservices REST. Choix justifié par :
+\begin{itemize}
+    \item Écosystème mature et bien documenté
+    \item Spring Kafka pour la messagerie distribuée
+    \item Spring Security pour l'authentification JWT
+    \item Spring Data JPA pour l'ORM
+\end{itemize}
+
+\subsection{FastAPI + Uvicorn (Python)}
+Serveur ARIMA léger et haute performance. Avantages :
+\begin{itemize}
+    \item Démarrage instantané
+    \item Validation Pydantic automatique
+    \item Documentation OpenAPI intégrée
+    \item Parfait pour les microservices Python isolés
+\end{itemize}
+
+\section{Bases de Données}
+
+\subsection{PostgreSQL 15}
+Base de données relationnelle pour les ordres, utilisateurs et états transactionnels.
+\begin{itemize}
+    \item ACID compliance pour la fiabilité
+    \item Support des types JSON pour les données flexibles
+    \item Excellent pour les transactions métier
+\end{itemize}
+
+\subsection{InfluxDB 2.7}
+Time-series database pour les historiques de prix.
+\begin{itemize}
+    \item Optimisé pour les données temporelles volumineuses
+    \item Agrégation rapide et requêtes efficaces
+    \item Compression automatique des anciennes données
+\end{itemize}
+
+\subsection{Redis 7}
+Cache en mémoire et stockage de sessions.
+\begin{itemize}
+    \item Notifications en mémoire (pub/sub)
+    \item Stockage des token de refresh
+    \item Performance ultra-rapide pour le cache
+\end{itemize}
+
+\section{Orchestration}
+
+\subsection{Apache Kafka (KRaft mode)}
+Streaming distribué pour la communication inter-services.
+\begin{itemize}
+    \item Découplage des services
+    \item Garanties de livraison (at-least-once)
+    \item Partitioning pour la scalabilité horizontale
+\end{itemize}
+
+\subsection{Docker et Docker Compose}
+Containerisation et orchestration locale.
+\begin{itemize}
+    \item Isolation des dépendances
+    \item Reproductibilité de l'environnement
+    \item Facile à déployer et à scaler
+\end{itemize}
+
+\section{Infrastructure (Futur)}
+
+\subsection{Kubernetes}
+Déploiement en production avec auto-scaling et auto-healing.
+
+\subsection{Jenkins}
+Pipeline CI/CD automatisé pour les tests et déploiements.
+
+% ================================================================================
+% ARCHITECTURE DÉTAILLÉE
+% ================================================================================
+\chapter{Architecture Système}
+
+\section{Diagramme d'Architecture}
+
+\begin{verbatim}
+┌─────────────────────────────────────────────────────────────────┐
+│                         FRONTEND (React/Vue)                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  HTTP/REST                                WebSocket (STOMP)     │
+│      ↓                                            ↓              │
+│  ┌─────────────────────────────────────────────────────┐       │
+│  │          Spring Boot Microservices                   │       │
+│  ├─────────────────────────────────────────────────────┤       │
+│  │ User Service  Order Service  Prediction Service    │       │
+│  │  (8081)       (8082)         (8085)                │       │
+│  │                                                     │       │
+│  │         Notification Service (8084)                │       │
+│  │    (WebSocket + Redis Storage)                     │       │
+│  │                                                     │       │
+│  │ Historical Service   Market Data Service           │       │
+│  │  (8087)             (8083)                         │       │
+│  └─────────────────────────────────────────────────────┘       │
+│            ↓                                                    │
+│       Apache Kafka (9092)                                      │
+│       ├─ order-triggers                                        │
+│       ├─ prediction-events                                     │
+│       ├─ balance-update                                        │
+│       ├─ raw-prices.crypto                                     │
+│       └─ raw-prices.indices                                    │
+│            ↓                                                    │
+│  ┌─────────────────────────────────────────────────────┐       │
+│  │          Persistence & Storage                       │       │
+│  ├─────────────────────────────────────────────────────┤       │
+│  │ PostgreSQL   InfluxDB    Redis                       │       │
+│  │ (Orders,    (Prices)    (Cache/Pub-Sub)            │       │
+│  │  Users)                                             │       │
+│  └─────────────────────────────────────────────────────┘       │
+│                                                                  │
+│  Python ML API (Port 5000)                                      │
+│  └─ ARIMA Model Predictions                                     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+\end{verbatim}
+
+\section{Flux de Données}
+
+\subsection{Flux de Trading}
+\begin{enumerate}
+    \item Frontend affiche les données historiques via \texttt{GET /api/historical/prices}
+    \item Utilisateur déclenche une prédiction : \texttt{GET /api/v1/predict/BTCUSDT} OU \texttt{POST /api/v1/predict/BTCUSDT}
+    \item Prediction Service exécute le consensus algorithm
+    \item Signal est publié sur Kafka (\texttt{prediction-events})
+    \item Notification Service reçoit et pousse via WebSocket
+    \item Utilisateur crée un ordre : \texttt{POST /api/orders}
+    \item Order Service valide et crée en BDD
+    \item Order Service émet \texttt{balance-update} pour débiter l'utilisateur
+    \item User Service met à jour le solde
+    \item Order Service écoute les ticks via \texttt{raw-prices.crypto}
+    \item Si stop-loss ou take-profit déclenché, Order Service ferme l'ordre
+    \item Émission de \texttt{order-triggers} pour les notifications
+\end{enumerate}
+
+% ================================================================================
+% DOCUMENTATION DES ENDPOINTS
+% ================================================================================
+\chapter{Documentation des Endpoints API}
+
+\section{User Service (Port 8081)}
+
+\subsection{POST /api/auth/login}
+Authentification utilisateur et émission de JWT.
+
+\begin{lstlisting}[language=json]
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "trader",
+  "password": "SecurePassword123"
+}
+
+Response (200 OK):
+{
+  "accessToken": "eyJhbGc...",
+  "refreshToken": "eyJhbGc...",
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "username": "trader"
+}
+\end{lstlisting}
+
+\subsection{GET /api/users/{userId}}
+Récupérer les données utilisateur.
+
+\begin{lstlisting}[language=json]
+GET /api/users/550e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer <token>
+
+Response (200 OK):
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "username": "trader",
+  "email": "trader@example.com",
+  "balance": 10500.75,
+  "createdAt": "2026-05-14T10:00:00Z"
+}
+\end{lstlisting}
+
+\section{Order Service (Port 8082)}
+
+\subsection{POST /api/orders}
+Créer un nouvel ordre de trading.
+
+\begin{lstlisting}[language=json]
+POST /api/orders
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "symbol": "BTCUSDT",
+  "type": "BUY",
+  "quantity": 0.01,
+  "price": 80000,
+  "stopLoss": 79500,
+  "takeProfit": 81000
+}
+
+Response (201 Created):
+{
+  "id": "order-uuid",
+  "symbol": "BTCUSDT",
+  "type": "BUY",
+  "quantity": 0.01,
+  "status": "OPEN",
+  "createdAt": "2026-05-17T12:00:00Z"
+}
+\end{lstlisting}
+
+\subsection{GET /api/orders?status=OPEN}
+Lister les ordres filtrés par statut.
+
+\begin{lstlisting}[language=json]
+GET /api/orders?status=OPEN
+Authorization: Bearer <token>
+
+Response (200 OK):
+[
+  {
+    "id": "order-uuid-1",
+    "symbol": "BTCUSDT",
+    "type": "BUY",
+    "quantity": 0.01,
+    "status": "OPEN",
+    "createdAt": "2026-05-17T12:00:00Z"
+  }
+]
+\end{lstlisting}
+
+\subsection{DELETE /api/orders/{orderId}}
+Annuler un ordre en cours.
+
+\begin{lstlisting}[language=json]
+DELETE /api/orders/order-uuid-1
+Authorization: Bearer <token>
+
+Response (204 No Content)
+\end{lstlisting}
+
+\section{Prediction Service (Port 8085)}
+
+\subsection{GET /api/v1/predict/{symbol}}
+Prédiction autonome avec données du Historical Service.
+
+\begin{lstlisting}[language=json]
+GET /api/v1/predict/BTCUSDT
+
+Response (200 OK):
+{
+  "symbol": "BTCUSDT",
+  "action": "BUY",
+  "confidence": 0.78,
+  "timestamp": 1778765400000
+}
+\end{lstlisting}
+
+\subsection{POST /api/v1/predict/{symbol}}
+Prédiction avec données fournies par le frontend.
+
+\begin{lstlisting}[language=json]
+POST /api/v1/predict/BTCUSDT
+Content-Type: application/json
+
+[80000, 80050, 80100, 79900, 79850]
+
+Response (200 OK):
+{
+  "symbol": "BTCUSDT",
+  "action": "SELL",
+  "confidence": 0.65,
+  "timestamp": 1778765400000
+}
+\end{lstlisting}
+
+\section{Historical Service (Port 8087)}
+
+\subsection{GET /api/historical/prices}
+Récupérer les données historiques avec agrégation.
+
+\begin{lstlisting}[language=json]
+GET /api/historical/prices?symbol=BTCUSDT&start=2026-05-14T00:00:00Z&end=2026-05-15T00:00:00Z&interval=5m
+
+Response (200 OK):
+{
+  "symbol": "BTCUSDT",
+  "data": [
+    {
+      "timestamp": 1778763000000,
+      "price": 79735.54
+    },
+    {
+      "timestamp": 1778763300000,
+      "price": 79750.22
+    }
+  ]
+}
+\end{lstlisting}
+
+% ================================================================================
+% KAFKA TOPICS
+% ================================================================================
+\chapter{Système de Messagerie Kafka}
+
+\section{Architecture Kafka}
+
+Kafka est déployé en mode KRaft (Kraft = Kafka Raft), éliminant le besoin de ZooKeeper. Configuration :
+
+\begin{itemize}
+    \item \textbf{Broker ID} : 1
+    \item \textbf{Bootstrap Servers} : \texttt{kafka:9092}
+    \item \textbf{Replication Factor} : 1 (développement)
+    \item \textbf{Partitions} : 1 par défaut (production : 3-10)
+\end{itemize}
+
+\section{Topics Définis}
+
+\subsection{order-triggers}
+\textbf{Producteur} : Order Service \\
+\textbf{Consommateurs} : Notification Service, Frontend (via WebSocket) \\
+\textbf{Fréquence} : Événementielle \\
+\textbf{Format} :
+
+\begin{lstlisting}[language=json]
+{
+  "orderId": "90c80587-3e5d-4a2f-9fb8-c7a8d3e4f5g6",
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "symbol": "BTCUSDT",
+  "type": "BUY",
+  "quantity": 0.01,
+  "executionPrice": 80230.22,
+  "triggerType": "TAKE_PROFIT",
+  "timestamp": "2026-05-14T14:23:30.014Z"
+}
+\end{lstlisting}
+
+\subsection{prediction-events}
+\textbf{Producteur} : Prediction Service \\
+\textbf{Consommateurs} : Notification Service, Order Service (optionnel) \\
+\textbf{Fréquence} : À chaque appel API prédiction \\
+\textbf{Format} :
+
+\begin{lstlisting}[language=json]
+{
+  "symbol": "BTCUSDT",
+  "action": "BUY",
+  "confidence": 0.78,
+  "timestamp": 1778765400000
+}
+\end{lstlisting}
+
+\subsection{balance-update}
+\textbf{Producteur} : Order Service \\
+\textbf{Consommateurs} : User Service \\
+\textbf{Fréquence} : À l'exécution/fermeture d'ordre \\
+\textbf{Format} :
+
+\begin{lstlisting}[language=json]
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "amount": 530.22,
+  "reason": "order_execution",
+  "referenceId": "90c80587-3e5d-4a2f-9fb8-c7a8d3e4f5g6",
+  "timestamp": "2026-05-14T14:23:30.015Z"
+}
+\end{lstlisting}
+
+\subsection{raw-prices.crypto}
+\textbf{Producteur} : Market Data Service \\
+\textbf{Consommateurs} : Order Service, Historical Service \\
+\textbf{Fréquence} : Temps réel (tick par tick) \\
+\textbf{Format} :
+
+\begin{lstlisting}[language=json]
+{
+  "source": "BINANCE",
+  "symbol": "BTCUSDT",
+  "price": 80230.22,
+  "timestamp": "2026-05-14T14:23:30.013Z"
+}
+\end{lstlisting}
+
+\subsection{raw-prices.indices}
+\textbf{Producteur} : Market Data Service \\
+\textbf{Consommateurs} : Historical Service, Order Service \\
+\textbf{Fréquence} : Temps réel \\
+\textbf{Format} : Identique à \texttt{raw-prices.crypto}
+
+\subsection{user-events}
+\textbf{Producteur} : User Service \\
+\textbf{Consommateurs} : Notification Service \\
+\textbf{Fréquence} : À l'inscription/modification \\
+\textbf{Format} :
+
+\begin{lstlisting}[language=json]
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "eventType": "USER_REGISTERED",
+  "username": "trader",
+  "email": "trader@example.com",
+  "timestamp": "2026-05-14T10:00:00Z"
+}
+\end{lstlisting}
+
+\section{Garanties de Livraison}
+
+\begin{itemize}
+    \item \textbf{At-least-once} : Les messages sont livrés au moins une fois (par défaut)
+    \item \textbf{Idempotence} : Les consommateurs doivent gérer les doublons
+    \item \textbf{Ordering} : Garanti au sein d'une partition
+    \item \textbf{Retention} : 7 jours par défaut
+\end{itemize}
+
+% ================================================================================
+% CHOIX TECHNIQUES
+% ================================================================================
+\chapter{Justifications des Choix Techniques}
+
+\section{Microservices vs Monolithe}
+
+\subsection{Raisons du Choix}
+\begin{itemize}
+    \item \textbf{Scalabilité} : Chaque service peut être scalé indépendamment
+    \item \textbf{Maintenabilité} : Équipes peuvent travailler indépendamment
+    \item \textbf{Résilience} : Défaillance d'un service n'affecte pas les autres
+    \item \textbf{Technologie Hétérogène} : Java + Python dans le même écosystème
+    \item \textbf{Déploiement} : Releases indépendantes par service
+\end{itemize}
+
+\subsection{Trade-offs}
+\begin{itemize}
+    \item Complexité opérationnelle accrue
+    \item Latence réseau inter-services
+    \item Debugging distribué plus difficile
+    \item Nécessité d'orchestration (Docker/K8s)
+\end{itemize}
+
+\section{Kafka pour le Streaming}
+
+\subsection{Avantages vs API REST}
+\begin{itemize}
+    \item Découplage complet des services
+    \item Haute performance et throughput (millions de messages/s)
+    \item Replay des messages (replay de l'historique)
+    \item Durabilité et garanties transactionnelles
+    \item Pub/Sub pattern pour multiple consommateurs
+\end{itemize}
+
+\subsection{Cas d'Usage Kafka ici}
+\begin{itemize}
+    \item \textbf{balance-update} : Doit arriver avant confirmation à l'utilisateur
+    \item \textbf{order-triggers} : Peut tolérer quelques ms de latence
+    \item \textbf{raw-prices} : Haute fréquence, throughput critique
+\end{itemize}
+
+\section{ARIMA vs Autres Modèles}
+
+\subsection{Pourquoi ARIMA?}
+\begin{itemize}
+    \item Léger et rapide (pas de GPU requis)
+    \item Excellent pour les séries temporelles univariées
+    \item Interprétabilité (contrairement aux deep learning)
+    \item Stdlib Python (statsmodels)
+\end{itemize}
+
+\subsection{Consensus Algorithm}
+Plutôt que de se fier à un seul signal, nous combinons :
+\begin{itemize}
+    \item \textbf{EMA} : Capture la tendance à court terme
+    \item \textbf{RSI} : Détecte les zones de suracheté/survendu
+    \item \textbf{ARIMA} : Prédiction statistique future
+\end{itemize}
+
+Chaque signal est pondéré par sa confiance. Exemple :
+
+\begin{lstlisting}[language=python]
+# Consensus = weighted average
+final_score = (ema.confidence * ema.signal + 
+               rsi.confidence * rsi.signal + 
+               arima.confidence * arima.signal) / total_confidence
+
+if final_score > 0.3:
+    action = "BUY"
+elif final_score < -0.3:
+    action = "SELL"
+else:
+    action = "HOLD"
+\end{lstlisting}
+
+\section{Choix de la Base de Données}
+
+\subsection{PostgreSQL pour les Transactions}
+\begin{itemize}
+    \item ACID compliance (obligation légale pour les données financières)
+    \item Transactions distribuées via Debezium (futur)
+    \item Indexes complexes pour les requêtes métier
+\end{itemize}
+
+\subsection{InfluxDB pour les Séries Temporelles}
+\begin{itemize}
+    \item Compression 10x meilleure que PostgreSQL
+    \item Agrégation native (moyenne, min, max par intervalle)
+    \item Rétention automatique (downsampling)
+    \item Optimisé pour les billions de points de données
+\end{itemize}
+
+\subsection{Redis pour le Cache}
+\begin{itemize}
+    \item Sub-milliseconde latency
+    \item Pub/Sub pattern pour les notifications
+    \item Stockage des sessions JWT
+    \item Atomic operations pour les compteurs
+\end{itemize}
+
+% ================================================================================
+% IMPLÉMENTATION DÉTAILLÉE
+% ================================================================================
+\chapter{Implémentation Détaillée}
+
+\section{Prediction Service - Dual Strategy}
+
+\subsection{Strategy 1 : Prédiction Autonome}
+
+\begin{lstlisting}[language=java]
+@GetMapping("/{symbol}")
+public Signal predictFromHistory(@PathVariable String symbol) {
+    // Fetch last 12 hours automatically in 15m intervals
+    Instant end = Instant.now();
+    Instant start = end.minus(12, ChronoUnit.HOURS);
+    
+    String url = String.format(
+        "%s/api/historical/prices?symbol=%s&start=%s&end=%s&interval=15m",
+        historicalServiceUrl, symbol, start.toString(), end.toString()
+    );
+    
+    List<Double> prices = new ArrayList<>();
+    try {
+        Map response = restTemplate.getForObject(url, Map.class);
+        if (response != null && response.containsKey("data")) {
+            List<Map<String, Object>> data = 
+                (List<Map<String, Object>>) response.get("data");
+            for (Map<String, Object> point : data) {
+                if (point.containsKey("price")) {
+                    prices.add(Double.valueOf(
+                        point.get("price").toString()
+                    ));
+                }
+            }
+        }
+    } catch (Exception e) {
+        System.err.println("Failed to fetch historical data: " 
+            + e.getMessage());
+    }
+    
+    return processAndSendSignal(symbol, prices);
+}
+\end{lstlisting}
+
+\subsection{Strategy 2 : Prédiction avec Données Personnalisées}
+
+\begin{lstlisting}[language=java]
+@PostMapping("/{symbol}")
+public Signal predictRealTime(
+    @PathVariable String symbol, 
+    @RequestBody List<Double> prices
+) {
+    return processAndSendSignal(symbol, prices);
+}
+
+private Signal processAndSendSignal(String symbol, List<Double> prices) {
+    Signal signal = consensusService.getConsensusSignal(symbol, prices);
+    
+    try {
+        String signalJson = objectMapper.writeValueAsString(signal);
+        kafkaTemplate.send("prediction-events", symbol, signalJson);
+    } catch (Exception e) {
+        System.err.println("Failed to send signal to Kafka: " 
+            + e.getMessage());
+    }
+    
+    return signal;
+}
+\end{lstlisting}
+
+\section{Consensus Service - Agrégation Intelligente}
+
+\begin{lstlisting}[language=java]
+@Service
+public class ConsensusService {
+    private final List<PredictionStrategy> strategies;
+
+    public Signal getConsensusSignal(String symbol, List<Double> prices) {
+        if (prices == null || prices.isEmpty()) {
+            return new Signal(symbol, "HOLD", 0.0, 
+                System.currentTimeMillis());
+        }
+
+        // Collect signals from all strategies
+        List<Signal> signals = strategies.stream()
+            .map(strategy -> strategy.calculateSignal(symbol, prices))
+            .collect(Collectors.toList());
+
+        // Weighted consensus
+        double totalScore = 0.0;
+        double totalWeight = 0.0;
+
+        for (Signal signal : signals) {
+            double weight = signal.getConfidence();
+            totalWeight += weight;
+
+            if ("BUY".equalsIgnoreCase(signal.getAction())) {
+                totalScore += weight;
+            } else if ("SELL".equalsIgnoreCase(signal.getAction())) {
+                totalScore -= weight;
+            }
+        }
+
+        double normalizedScore = totalWeight == 0 ? 0 : 
+            totalScore / totalWeight;
+        
+        String finalAction;
+        double finalConfidence = Math.abs(normalizedScore);
+
+        if (normalizedScore > 0.3) {
+            finalAction = "BUY";
+        } else if (normalizedScore < -0.3) {
+            finalAction = "SELL";
+        } else {
+            finalAction = "HOLD";
+            finalConfidence = 1.0 - Math.abs(normalizedScore) / 0.3;
+        }
+
+        return new Signal(symbol, finalAction, finalConfidence, 
+            System.currentTimeMillis());
+    }
+}
+\end{lstlisting}
+
+\section{Python ARIMA Model Server}
+
+\begin{lstlisting}[language=python]
+from fastapi import FastAPI
+from pydantic import BaseModel
+import statsmodels.api as sm
+from typing import List
+
+app = FastAPI()
+
+class PredictRequest(BaseModel):
+    symbol: str
+    prices: List[float]
+
+@app.post("/predict")
+def predict_price(request: PredictRequest):
+    prices = request.prices
+    
+    if len(prices) < 5:
+        return {"action": "HOLD", "confidence": 0.0}
+
+    try:
+        # ARIMA(1,1,0): AR=1, I=1, MA=0
+        model = sm.tsa.ARIMA(prices, order=(1, 1, 0))
+        fitted_model = model.fit()
+
+        # Forecast 1 step ahead
+        forecast = fitted_model.forecast(steps=1)
+        predicted_price = forecast.iloc[0] if hasattr(forecast, "iloc") \
+            else forecast[0]
+        
+        last_price = prices[-1]
+        pct_change = (predicted_price - last_price) / last_price
+        
+        threshold = 0.001  # 0.1%
+        confidence = min(abs(pct_change) * 100, 1.0)
+        
+        if pct_change > threshold:
+            action = "BUY"
+        elif pct_change < -threshold:
+            action = "SELL"
+        else:
+            action = "HOLD"
+            confidence = 1.0 - (abs(pct_change) / threshold)
+            
+        return {
+            "action": action, 
+            "confidence": round(float(confidence), 2)
+        }
+        
+    except Exception as e:
+        print(f"Prediction Error for {request.symbol}: {e}")
+        return {"action": "HOLD", "confidence": 0.0}
+\end{lstlisting}
+
+% ================================================================================
+% DÉPLOIEMENT DOCKER
+% ================================================================================
+\chapter{Déploiement Docker}
+
+\section{Docker Compose - Orchestration Locale}
+
+\subsection{Avantages}
+\begin{itemize}
+    \item Un seul fichier \texttt{docker-compose.yml} pour tout l'écosystème
+    \item Démarrage en parallèle de tous les services
+    \item Networking automatique entre conteneurs
+    \item Volumes pour la persistance des données
+    \item Variables d'environnement centralisées
+\end{itemize}
+
+\subsection{Commandes Essentielles}
+
+\begin{lstlisting}[language=bash]
+# Démarrer tous les services
+docker-compose up -d --build
+
+# Voir les logs en direct
+docker-compose logs -f prediction-service
+
+# Arrêter tous les services
+docker-compose down
+
+# Recréer les images
+docker-compose build --no-cache
+
+# Accéder à PostgreSQL
+docker-compose exec postgres psql -U user -d crypto
+\end{lstlisting}
+
+\section{Containerisation des Services}
+
+\subsection{Dockerfile Java (Multi-stage Build)}
+
+\begin{lstlisting}[language=dockerfile]
+FROM eclipse-temurin:21-jdk AS build
+WORKDIR /app
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+COPY src/ src/
+RUN chmod +x mvnw && ./mvnw -q -DskipTests package
+
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+ENV JAVA_OPTS=""
+COPY --from=build /app/target/*.jar /app/app.jar
+EXPOSE 8085
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
+\end{lstlisting}
+
+\textbf{Points clés} :
+\begin{itemize}
+    \item Multi-stage pour réduire la taille (3GB → 400MB)
+    \item Alpine Linux pour la légèreté
+    \item JAVA\_OPTS pour la tuning JVM
+\end{itemize}
+
+\subsection{Dockerfile Python}
+
+\begin{lstlisting}[language=dockerfile]
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY main.py .
+
+EXPOSE 5000
+
+CMD ["python", "main.py"]
+\end{lstlisting}
+
+% ================================================================================
+% KUBERNETES - IMPLÉMENTATION FUTURE
+% ================================================================================
+\chapter{Kubernetes - Implémentation Future}
+
+\section{Motivation}
+
+Pour un déploiement en production (AWS EKS, Google GKE, Azure AKS), Kubernetes offre :
+
+\begin{itemize}
+    \item \textbf{Auto-scaling} : Réplication automatique sous charge
+    \item \textbf{Auto-healing} : Redémarrage des pods défaillants
+    \item \textbf{Rolling updates} : Déploiements sans downtime
+    \item \textbf{Service discovery} : DNS automatique
+    \item \textbf{Secrets management} : Gestion des variables sensibles
+    \item \textbf{Persistent volumes} : Stockage fiable pour les bases
+\end{itemize}
+
+\section{Architecture Proposée}
+
+\begin{verbatim}
+Cluster Kubernetes
+├── Namespace: trading-platform
+│   ├── Deployments (Replicas: 2-3)
+│   │   ├── user-service:latest
+│   │   ├── order-service:latest
+│   │   ├── prediction-service:latest
+│   │   ├── notification-service:latest
+│   │   └── python-model-api:latest
+│   │
+│   ├── StatefulSets (Order importante)
+│   │   ├── kafka-broker-0
+│   │   ├── postgres-0
+│   │   └── influxdb-0
+│   │
+│   ├── Services
+│   │   ├── user-service-svc (ClusterIP)
+│   │   ├── order-service-svc (ClusterIP)
+│   │   ├── prediction-service-svc (LoadBalancer/Ingress)
+│   │   └── notification-service-svc (LoadBalancer/Ingress)
+│   │
+│   ├── ConfigMaps
+│   │   └── app-config (variables d'environnement)
+│   │
+│   ├── Secrets
+│   │   ├── db-credentials
+│   │   ├── jwt-secret
+│   │   └── api-keys
+│   │
+│   └── Ingress
+│       └── trading-platform-ingress (routing HTTP/HTTPS)
+│
+└── Monitoring
+    ├── Prometheus (métriques)
+    ├── Grafana (dashboards)
+    └── ELK Stack (logs centralisés)
+\end{verbatim}
+
+\section{Exemple Manifest : User Service Deployment}
+
+\begin{lstlisting}[language=yaml]
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: trading-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: registry.example.com/trading/user-service:v1.0
+        ports:
+        - containerPort: 8081
+        env:
+        - name: DB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: db-url
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: password
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+\end{lstlisting}
+
+\subsection{Analyse du Manifest}
+\begin{itemize}
+    \item \textbf{Replicas: 3} : 3 instances pour haute disponibilité
+    \item \textbf{Liveness Probe} : Redémarre si non responsive
+    \item \textbf{Readiness Probe} : Ne reçoit du trafic que si prête
+    \item \textbf{Resources} : Limits pour éviter les crash OOM
+    \item \textbf{Secrets/ConfigMaps} : Pas de secrets en dur
+\end{itemize}
+
+\section{Services Kubernetes}
+
+\begin{lstlisting}[language=yaml]
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: trading-platform
+spec:
+  type: ClusterIP  # Internal only
+  selector:
+    app: user-service
+  ports:
+  - port: 8081
+    targetPort: 8081
+    name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: trading-platform
+spec:
+  type: LoadBalancer  # External access
+  selector:
+    app: api-gateway
+  ports:
+  - port: 80
+    targetPort: 8080
+    name: http
+  - port: 443
+    targetPort: 8443
+    name: https
+\end{lstlisting}
+
+\section{Ingress pour Routing HTTP}
+
+\begin{lstlisting}[language=yaml]
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: trading-platform
+  namespace: trading-platform
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+  - hosts:
+    - api.tradingplatform.io
+    secretName: trading-tls-cert
+  rules:
+  - host: api.tradingplatform.io
+    http:
+      paths:
+      - path: /api/auth
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 8081
+      - path: /api/orders
+        pathType: Prefix
+        backend:
+          service:
+            name: order-service
+            port:
+              number: 8082
+      - path: /api/v1/predict
+        pathType: Prefix
+        backend:
+          service:
+            name: prediction-service
+            port:
+              number: 8085
+      - path: /ws
+        pathType: Prefix
+        backend:
+          service:
+            name: notification-service
+            port:
+              number: 8084
+\end{lstlisting}
+
+\section{HorizontalPodAutoscaler}
+
+\begin{lstlisting}[language=yaml]
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: order-service-hpa
+  namespace: trading-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: order-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+\end{lstlisting}
+
+\section{Commandes Kubernetes Essentielles}
+
+\begin{lstlisting}[language=bash]
+# Créer le namespace
+kubectl create namespace trading-platform
+
+# Appliquer les manifests
+kubectl apply -f k8s/infrastructure.yml
+kubectl apply -f k8s/apps.yml
+
+# Voir les pods
+kubectl get pods -n trading-platform
+
+# Logs d'un pod
+kubectl logs user-service-abc123 -n trading-platform
+
+# Accéder au shell d'un pod
+kubectl exec -it user-service-abc123 -n trading-platform -- /bin/bash
+
+# Port forward
+kubectl port-forward svc/user-service 8081:8081 -n trading-platform
+
+# Scaling manuel
+kubectl scale deployment order-service --replicas=5 -n trading-platform
+
+# Monitoring
+kubectl top nodes
+kubectl top pods -n trading-platform
+\end{lstlisting}
+
+% ================================================================================
+% PIPELINE CI/CD JENKINS
+% ================================================================================
+\chapter{Pipeline CI/CD avec Jenkins}
+
+\section{Architecture Jenkins Proposée}
+
+\begin{verbatim}
+Source Code (GitHub)
+        ↓
+  WebHook Push
+        ↓
+Jenkins Pipeline Trigger
+        ↓
+Stage 1: Checkout
+        ↓
+Stage 2: Build & Unit Tests
+        ↓
+Stage 3: Code Quality (SonarQube)
+        ↓
+Stage 4: Build Docker Images
+        ↓
+Stage 5: Push to Registry (DockerHub/ECR)
+        ↓
+Stage 6: Deploy to Dev (K8s/DockerCompose)
+        ↓
+Stage 7: Integration Tests
+        ↓
+Stage 8: Deploy to Prod (K8s)
+        ↓
+Stage 9: Smoke Tests
+        ↓
+    Notification (Slack/Email)
+\end{verbatim}
+
+\section{Jenkinsfile pour Prediction Service}
+
+\begin{lstlisting}[language=groovy]
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_REGISTRY = credentials('docker-registry-credentials')
+        DOCKER_IMAGE_NAME = "trading/prediction-service"
+        DOCKER_IMAGE_TAG = "${BUILD_NUMBER}-${GIT_COMMIT.take(7)}"
+        KUBECONFIG = credentials('kubeconfig-prod')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build & Unit Tests') {
+            steps {
+                dir('prediction-service') {
+                    sh './mvnw clean package -DskipTests'
+                    sh './mvnw test'
+                }
+            }
+        }
+
+        stage('Code Quality') {
+            steps {
+                dir('prediction-service') {
+                    sh '''
+                        ./mvnw sonar:sonar \
+                        -Dsonar.projectKey=prediction-service \
+                        -Dsonar.host.url=http://sonarqube:9000 \
+                        -Dsonar.login=sonar-token
+                    '''
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('prediction-service') {
+                    sh '''
+                        docker build \
+                        -t $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG \
+                        -t $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest \
+                        .
+                    '''
+                }
+            }
+        }
+
+        stage('Push to Registry') {
+            steps {
+                sh '''
+                    echo $DOCKER_REGISTRY_PSW | \
+                    docker login -u $DOCKER_REGISTRY_USR --password-stdin
+
+                    docker push $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG
+                    docker push $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest
+                '''
+            }
+        }
+
+        stage('Deploy to Dev') {
+            steps {
+                sh '''
+                    kubectl set image deployment/prediction-service \
+                    prediction-service=$DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG \
+                    -n trading-platform-dev
+                '''
+            }
+        }
+
+        stage('Integration Tests') {
+            steps {
+                sh '''
+                    # Wait for pod to be ready
+                    kubectl rollout status deployment/prediction-service \
+                    -n trading-platform-dev --timeout=2m
+
+                    # Run integration tests
+                    ./tests/integration-tests.sh
+                '''
+            }
+        }
+
+        stage('Deploy to Prod') {
+            when {
+                branch 'main'
+            }
+            steps {
+                input 'Deploy to Production?'
+                sh '''
+                    kubectl set image deployment/prediction-service \
+                    prediction-service=$DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG \
+                    -n trading-platform-prod
+                    
+                    kubectl rollout status deployment/prediction-service \
+                    -n trading-platform-prod --timeout=5m
+                '''
+            }
+        }
+
+        stage('Smoke Tests') {
+            steps {
+                sh '''
+                    curl -f http://prediction-service:8085/api/v1/predict/BTCUSDT || exit 1
+                    echo "Smoke tests passed!"
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            slackSend(
+                color: 'good',
+                message: "Prediction Service deployed successfully (Build #$BUILD_NUMBER)"
+            )
+        }
+        failure {
+            slackSend(
+                color: 'danger',
+                message: "Prediction Service deployment failed (Build #$BUILD_NUMBER)"
+            )
+        }
+    }
+}
+\end{lstlisting}
+
+\section{Jenkins + GitHub Integration}
+
+\subsection{Configuration WebHook}
+
+1. Sur GitHub, aller à \texttt{Settings > Webhooks}
+2. Ajouter webhook : \texttt{http://jenkins.example.com/github-webhook/}
+3. Events : \texttt{Push events} + \texttt{Pull requests}
+4. Dans Jenkins : Pipeline > Configure > Build Triggers > \texttt{GitHub hook trigger}
+
+\subsection{Avantages CI/CD}
+\begin{itemize}
+    \item \textbf{Automation} : Pas d'erreurs humaines
+    \item \textbf{Speed} : Déploiement en minutes vs heures
+    \item \textbf{Rollback} : Retour rapide en cas de problème
+    \item \textbf{Visibility} : Logs complètes de chaque étape
+    \item \textbf{Quality Gate} : Tests obligatoires avant prod
+\end{itemize}
+
+% ================================================================================
+% MONITORING & OBSERVABILITÉ
+% ================================================================================
+\chapter{Monitoring et Observabilité}
+
+\section{Prometheus + Grafana}
+
+\subsection{Métriques Clés à Monitorer}
+
+\begin{lstlisting}[language=yaml]
+# Spring Boot Actuator expose automatiquement
+GET /actuator/prometheus
+
+# Exemple de metrics
+jvm_memory_used_bytes
+jvm_threads_live_threads
+http_requests_total{method="GET",status="200"}
+http_request_duration_seconds_bucket
+kafka_consumer_lag_sum
+db_connection_pool_size
+\end{lstlisting}
+
+\subsection{Grafana Dashboard}
+
+\begin{itemize}
+    \item CPU/Memory par service
+    \item HTTP Latency percentiles (p50, p95, p99)
+    \item Kafka Consumer Lag
+    \item Database Connection Pool
+    \item Error Rate et Exception Count
+    \item Business Metrics : Orders par seconde, Predictions/s
+\end{itemize}
+
+\section{Centralized Logging (ELK Stack)}
+
+\begin{itemize}
+    \item \textbf{Elasticsearch} : Indexe les logs
+    \item \textbf{Logstash} : Collecte et enrichit
+    \item \textbf{Kibana} : Visualise et recherche
+\end{itemize}
+
+\begin{lstlisting}[language=bash]
+# Configuration Logback (Spring)
+<appender name="LOGSTASH" class="...">
+    <host>logstash:5000</host>
+    <port>5000</port>
+</appender>
+\end{lstlisting}
+
+% ================================================================================
+% CONCLUSION
+% ================================================================================
+\chapter{Conclusion}
+
+\section{Résumé des Réalisations}
+
+Ce projet démontre une compréhension solide des architectures distribuées modernes :
+
+\begin{enumerate}
+    \item \textbf{Microservices} : 7 services indépendants avec responsabilités bien définies
+    \item \textbf{Machine Learning} : Consensus algorithm combinant 3 stratégies
+    \item \textbf{Real-time} : WebSockets + Kafka streaming
+    \item \textbf{Containerization} : Docker compose et Kubernetes ready
+    \item \textbf{CI/CD} : Pipeline Jenkins pour déploiements automatisés
+    \item \textbf{Scalability} : HPA, Load Balancing, Database Sharding prêt
+\end{enumerate}
+
+\section{Points Forts}
+
+\begin{itemize}
+    \item Architecture décentralisée et résiliente
+    \item Utilisation judicieuse des technologies (Java, Python, Kafka, K8s)
+    \item Dual-strategy Prediction pour robustesse
+    \item Kafka pour découplage et haute performance
+    \item Documentation professionnelle et complète
+    \item Prêt pour la production via Kubernetes
+\end{itemize}
+
+\section{Améliorations Futures}
+
+\begin{itemize}
+    \item \textbf{Machine Learning} : Modèles plus sophistiqués (LSTM, Transformer)
+    \item \textbf{Backtesting} : Framework pour tester les stratégies
+    \item \textbf{Real Market} : Intégration avec vraies APIs (Binance, Kraken)
+    \item \textbf{Portfolio Analytics} : Dashboards avancées
+    \item \textbf{Risk Management} : Gestion des risques et de la volatilité
+    \item \textbf{Advanced Auth} : OAuth2, 2FA, KYC
+\end{itemize}
+
+\section{Technologies Apprises}
+
+\begin{itemize}
+    \item Spring Boot ecosystem (Web, Data, Kafka, Security)
+    \item Apache Kafka et événements distribués
+    \item Docker, Docker Compose et containerization
+    \item Kubernetes et orchestration
+    \item Jenkins et CI/CD pipelines
+    \item PostgreSQL, InfluxDB, Redis
+    \item FastAPI et microservices Python
+    \item WebSockets et temps réel
+    \item LaTeX pour la documentation professionnelle
+\end{itemize}
+
+\end{document}
