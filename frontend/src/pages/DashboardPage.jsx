@@ -11,13 +11,11 @@ function DashboardPage() {
   const chartRef = useRef(null);
   const lineSeriesRef = useRef(null);
 
-  // Build symbol options from current prices
   const symbols = useMemo(() => {
     const unique = new Set(prices.map((p) => p.symbol).filter(Boolean));
     return Array.from(unique).sort();
   }, [prices]);
 
-  // Keep a valid selected symbol
   const activeSymbol = symbols.includes(selectedSymbol)
     ? selectedSymbol
     : symbols[0] || selectedSymbol;
@@ -28,22 +26,20 @@ function DashboardPage() {
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 400,
+      height: 380,
       layout: {
         background: { color: "#0f172a" },
-        textColor: "#e2e8f0",
+        textColor: "#64748b",
       },
       grid: {
         vertLines: { color: "#1e293b" },
         horzLines: { color: "#1e293b" },
       },
-      rightPriceScale: {
-        borderColor: "#334155",
-      },
+      rightPriceScale: { borderColor: "#1e293b" },
       timeScale: {
-        borderColor: "#334155",
+        borderColor: "#1e293b",
         timeVisible: true,
-        secondsVisible: true,
+        secondsVisible: false,
       },
     });
 
@@ -57,13 +53,10 @@ function DashboardPage() {
 
     const handleResize = () => {
       if (!chartContainerRef.current || !chartRef.current) return;
-      chartRef.current.applyOptions({
-        width: chartContainerRef.current.clientWidth,
-      });
+      chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
     };
 
     window.addEventListener("resize", handleResize);
-
     return () => {
       window.removeEventListener("resize", handleResize);
       chart.remove();
@@ -91,7 +84,7 @@ function DashboardPage() {
       .catch((err) => console.error("Historical fetch error:", err));
   }, [activeSymbol]);
 
-  // Poll latest prices and update both list + chart
+  // Poll live prices
   useEffect(() => {
     let isCurrent = true;
 
@@ -99,25 +92,18 @@ function DashboardPage() {
       try {
         const response = await api_market.get("prices/latest");
         const latest = response.data;
-
-        // 2. If the user changed symbols while this request was running, drop it
         if (!isCurrent) return;
 
         setPrices(latest);
-
         if (!lineSeriesRef.current || !latest?.length) return;
 
-        // Pick one asset to chart
         const primaryAsset = latest.find((a) => a.symbol === activeSymbol);
         if (!primaryAsset) return;
 
         const value = Number(primaryAsset.price);
         if (Number.isNaN(value)) return;
 
-        lineSeriesRef.current.update({
-          time: Math.floor(Date.now() / 1000), // unix seconds
-          value,
-        });
+        lineSeriesRef.current.update({ time: Math.floor(Date.now() / 1000), value });
       } catch (error) {
         console.error("Error fetching price:", error);
       }
@@ -131,84 +117,58 @@ function DashboardPage() {
     };
   }, [activeSymbol]);
 
+  const selectedPrice = prices.find((p) => p.symbol === activeSymbol);
+
   return (
-    <div style={{ padding: "1rem" }}>
-      <h1 style={{ marginBottom: "1rem" }}>Live prices</h1>
-
-      <div style={{ marginBottom: "0.75rem" }}>
-        <label htmlFor="symbol-select" style={{ marginRight: "0.5rem" }}>
-          Currency:
-        </label>
-        <select
-          id="symbol-select"
-          value={activeSymbol}
-          onChange={(e) => setSelectedSymbol(e.target.value)}
-          disabled={!symbols.length}
-          style={{
-            padding: "0.4rem 0.6rem",
-            borderRadius: "0.5rem",
-            border: "1px solid #334155",
-            background: "#0f172a",
-            color: "#e2e8f0",
-          }}
-        >
-          {!symbols.length ? (
-            <option value="">Loading...</option>
-          ) : (
-            symbols.map((sym) => (
-              <option key={sym} value={sym}>
-                {sym}
-              </option>
-            ))
-          )}
-        </select>
+    <div className="max-w-6xl mx-auto px-6 py-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-xl font-semibold text-white">Market</h1>
+        <span className="flex items-center gap-1.5 text-xs text-slate-500">
+          <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+          Live · every 5s
+        </span>
       </div>
-      <div
-        ref={chartContainerRef}
-        style={{
-          width: "100%",
-          maxWidth: "1000px",
-          marginBottom: "1.5rem",
-          borderRadius: "0.75rem",
-          overflow: "hidden",
-          border: "1px solid #1e293b",
-        }}
-      />
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-          gap: "0.75rem",
-        }}
-      >
+      {/* Symbol cards */}
+      <div className="flex gap-2 flex-wrap mb-5">
         {prices?.length ? (
           prices.map((asset) => (
-            <div
+            <button
               key={`${asset.source}-${asset.symbol}`}
-              style={{
-                background: "#0f172a",
-                color: "#e2e8f0",
-                border: "1px solid #1e293b",
-                borderRadius: "0.75rem",
-                padding: "0.75rem",
-              }}
+              onClick={() => setSelectedSymbol(asset.symbol)}
+              className={`text-left border rounded-xl px-4 py-3 transition-all cursor-pointer min-w-[130px] ${
+                asset.symbol === activeSymbol
+                  ? "bg-slate-800 border-green-500/40"
+                  : "bg-slate-900 border-slate-800 hover:border-slate-700"
+              }`}
             >
-              <small style={{ color: "#94a3b8" }}>{asset.source}</small>
-              <h3 style={{ margin: "0.3rem 0" }}>{asset.symbol}</h3>
-              <p style={{ margin: 0, fontSize: "1.05rem", fontWeight: 600 }}>
-                $
-                {Number(asset.price).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+              <p className="text-slate-500 text-xs">{asset.symbol}</p>
+              <p className="text-white font-semibold text-sm mt-0.5">
+                ${Number(asset.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-            </div>
+            </button>
           ))
         ) : (
-          <p>Loading market data...</p>
+          <p className="text-slate-500 text-sm">Loading market data...</p>
         )}
       </div>
+
+      {/* Selected price hero */}
+      {selectedPrice && (
+        <div className="mb-3">
+          <p className="text-slate-500 text-xs mb-1">{activeSymbol}</p>
+          <span className="text-3xl font-bold text-white">
+            ${Number(selectedPrice.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        </div>
+      )}
+
+      {/* Chart */}
+      <div
+        ref={chartContainerRef}
+        className="w-full rounded-xl overflow-hidden border border-slate-800"
+      />
     </div>
   );
 }

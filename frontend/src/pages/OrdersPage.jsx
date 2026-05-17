@@ -1,10 +1,7 @@
-import { useEffect } from "react";
-import { useState } from "react";
-import {
-  cancelOrder,
-  createOrder,
-  getUserOrders,
-} from "../services/orderService";
+import { useEffect, useState } from "react";
+import { cancelOrder, createOrder, getUserOrders } from "../services/orderService";
+
+const SYMBOLS = ["BTCUSDT", "ETHUSDT", "SPY"];
 
 function OrdersPage() {
   const [orders, set_orders] = useState([]);
@@ -27,18 +24,13 @@ function OrdersPage() {
   };
 
   useEffect(() => {
-    fetchOrders(status_filter);
+    fetchOrders();
   }, [status_filter]);
 
   const handleCreateOrder = async (e) => {
     e.preventDefault();
-
     set_error("");
-
-    if (!quantity) {
-      set_error("Quantity is required.");
-      return;
-    }
+    if (!quantity) { set_error("Quantity is required."); return; }
 
     try {
       await createOrder({
@@ -48,7 +40,6 @@ function OrdersPage() {
         stopLoss: stop_loss ? parseFloat(stop_loss) : null,
         takeProfit: take_profit ? parseFloat(take_profit) : null,
       });
-
       set_quantity("");
       set_stop_loss("");
       set_take_profit("");
@@ -68,258 +59,179 @@ function OrdersPage() {
     }
   };
 
+  const inputClass =
+    "w-full bg-slate-800/60 border border-slate-700 text-slate-200 placeholder-slate-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-green-500/70 focus:bg-slate-800 transition-all";
+
   return (
-    <div style={{ padding: "1.5rem", color: "#e2e8f0" }}>
-      <h1 style={{ marginBottom: "1.5rem" }}>Orders</h1>
+    <div className="max-w-6xl mx-auto px-6 py-8">
+      <h1 className="text-xl font-semibold text-white mb-6">Orders</h1>
 
-      <div
-        style={{
-          background: "#0f172a",
-          border: "1px solid #1e293b",
-          borderRadius: "0.75rem",
-          padding: "1.25rem",
-          maxWidth: "500px",
-          marginBottom: "2rem",
-        }}
-      >
-        <h2 style={{ marginBottom: "1rem", fontSize: "1.1rem" }}>New Order</h2>
-        {error && (
-          <div
-            style={{
-              padding: "0.75rem",
-              background: "#fee2e2",
-              color: "#991b1b",
-              borderRadius: "0.375rem",
-              marginBottom: "1rem",
-              fontSize: "0.875rem",
-            }}
-          >
-            {error}
-          </div>
-        )}
-        <form
-          onSubmit={handleCreateOrder}
-          style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}
-        >
-          <select
-            value={symbol}
-            onChange={(e) => set_symbol(e.target.value)}
-            style={{
-              padding: "0.5rem",
-              borderRadius: "0.375rem",
-              background: "#1e293b",
-              color: "#e2e8f0",
-              border: "1px solid #334155",
-            }}
-          >
-            <option value="BTCUSDT">BTCUSDT</option>
-            <option value="ETHUSDT">ETHUSDT</option>
-            <option value="SPY">SPY</option>
-          </select>
+      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-8 items-start">
+        {/* New order form */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">
+            New Order
+          </h2>
 
-          <select
-            value={type}
-            onChange={(e) => set_type(e.target.value)}
-            style={{
-              padding: "0.5rem",
-              borderRadius: "0.375rem",
-              background: "#1e293b",
-              color: "#e2e8f0",
-              border: "1px solid #334155",
-            }}
-          >
-            <option value="BUY">BUY</option>
-            <option value="SELL">SELL</option>
-          </select>
+          {error && (
+            <div className="bg-red-950/60 border border-red-900 text-red-300 text-sm rounded-lg px-4 py-3 mb-4">
+              {error}
+            </div>
+          )}
 
-          <input
-            type="number"
-            placeholder="Quantity"
-            value={quantity}
-            onChange={(e) => set_quantity(e.target.value)}
-            min="0"
-            step="any"
-            required
-            style={{
-              padding: "0.5rem",
-              borderRadius: "0.375rem",
-              background: "#1e293b",
-              color: "#e2e8f0",
-              border: "1px solid #334155",
-            }}
-          />
+          <form onSubmit={handleCreateOrder} className="flex flex-col gap-3">
+            {/* Symbol */}
+            <select value={symbol} onChange={(e) => set_symbol(e.target.value)} className={inputClass}>
+              {SYMBOLS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
 
-          <input
-            type="number"
-            placeholder="Stop Loss (optional)"
-            value={stop_loss}
-            onChange={(e) => set_stop_loss(e.target.value)}
-            min="0"
-            step="any"
-            style={{
-              padding: "0.5rem",
-              borderRadius: "0.375rem",
-              background: "#1e293b",
-              color: "#e2e8f0",
-              border: "1px solid #334155",
-            }}
-          />
+            {/* BUY / SELL toggle */}
+            <div className="flex rounded-lg overflow-hidden border border-slate-700">
+              <button
+                type="button"
+                onClick={() => set_type("BUY")}
+                className={`flex-1 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${
+                  type === "BUY" ? "bg-green-500 text-white" : "bg-slate-800 text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                BUY
+              </button>
+              <button
+                type="button"
+                onClick={() => set_type("SELL")}
+                className={`flex-1 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${
+                  type === "SELL" ? "bg-red-500 text-white" : "bg-slate-800 text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                SELL
+              </button>
+            </div>
 
-          <input
-            type="number"
-            placeholder="Take Profit (optional)"
-            value={take_profit}
-            onChange={(e) => set_take_profit(e.target.value)}
-            min="0"
-            step="any"
-            style={{
-              padding: "0.5rem",
-              borderRadius: "0.375rem",
-              background: "#1e293b",
-              color: "#e2e8f0",
-              border: "1px solid #334155",
-            }}
-          />
+            <input
+              type="number"
+              placeholder="Quantity"
+              value={quantity}
+              onChange={(e) => set_quantity(e.target.value)}
+              min="0"
+              step="any"
+              required
+              className={inputClass}
+            />
 
-          <button
-            type="submit"
-            style={{
-              padding: "0.6rem",
-              borderRadius: "0.375rem",
-              background: "#22c55e",
-              color: "#fff",
-              border: "none",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Place Order
-          </button>
-        </form>
-      </div>
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                type="number"
+                placeholder="Stop Loss"
+                value={stop_loss}
+                onChange={(e) => set_stop_loss(e.target.value)}
+                min="0"
+                step="any"
+                className={inputClass}
+              />
+              <input
+                type="number"
+                placeholder="Take Profit"
+                value={take_profit}
+                onChange={(e) => set_take_profit(e.target.value)}
+                min="0"
+                step="any"
+                className={inputClass}
+              />
+            </div>
 
-      <div>
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-          {["OPEN", "CLOSED"].map((s) => (
             <button
-              key={s}
-              onClick={() => set_status_filter(s)}
-              style={{
-                padding: "0.4rem 1rem",
-                borderRadius: "0.375rem",
-                border: "1px solid #334155",
-                cursor: "pointer",
-                background: status_filter === s ? "#3b82f6" : "#1e293b",
-                color: "#e2e8f0",
-                fontWeight: status_filter === s ? 700 : 400,
-              }}
+              type="submit"
+              className={`w-full font-semibold rounded-lg py-2.5 text-sm transition-colors cursor-pointer mt-1 ${
+                type === "BUY"
+                  ? "bg-green-500 hover:bg-green-400 text-white"
+                  : "bg-red-500 hover:bg-red-400 text-white"
+              }`}
             >
-              {s}
+              Place {type} Order
             </button>
-          ))}
+          </form>
         </div>
 
-        {orders.length === 0 ? (
-          <p style={{ color: "#94a3b8" }}>
-            No {status_filter.toLowerCase()} orders.
-          </p>
-        ) : (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.75rem",
-              maxWidth: "700px",
-            }}
-          >
-            {orders.map((order) => (
-              <div
-                key={order.id}
-                style={{
-                  background: "#0f172a",
-                  border: "1px solid #1e293b",
-                  borderRadius: "0.75rem",
-                  padding: "1rem",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
+        {/* Order list */}
+        <div>
+          {/* Filter tabs */}
+          <div className="flex gap-1 mb-4 bg-slate-900 border border-slate-800 rounded-xl p-1 w-fit">
+            {["OPEN", "CLOSED"].map((s) => (
+              <button
+                key={s}
+                onClick={() => set_status_filter(s)}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                  status_filter === s
+                    ? "bg-slate-700 text-white"
+                    : "text-slate-500 hover:text-slate-300"
+                }`}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.25rem",
-                  }}
-                >
-                  <div style={{ fontWeight: 700 }}>
-                    <span
-                      style={{
-                        color: order.type === "BUY" ? "#22c55e" : "#ef4444",
-                      }}
-                    >
-                      {order.type}
-                    </span>{" "}
-                    {order.symbol}
-                  </div>
-                  <div style={{ fontSize: "0.875rem", color: "#94a3b8" }}>
-                    Qty: {order.quantity} {order.price && `@ $${order.price}`}
-                  </div>
-                  {order.stopLoss && (
-                    <div style={{ fontSize: "0.8rem", color: "#f59e0b" }}>
-                      SL: ${order.stopLoss}
-                    </div>
-                  )}
-                  {order.takeProfit && (
-                    <div style={{ fontSize: "0.8rem", color: "#22c55e" }}>
-                      TP: ${order.takeProfit}
-                    </div>
-                  )}
-                  <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                    {new Date(order.createdAt).toLocaleString()}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-end",
-                    gap: "0.5rem",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "0.8rem",
-                      padding: "0.2rem 0.6rem",
-                      borderRadius: "9999px",
-                      background:
-                        order.status === "OPEN" ? "#064e3b" : "#1e293b",
-                      color: order.status === "OPEN" ? "#34d399" : "#94a3b8",
-                    }}
-                  >
-                    {order.status}
-                  </span>
-                  {order.status === "OPEN" && (
-                    <button
-                      onClick={() => handleCancelOrder(order.id)}
-                      style={{
-                        padding: "0.3rem 0.75rem",
-                        borderRadius: "0.375rem",
-                        background: "#7f1d1d",
-                        color: "#fca5a5",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: "0.8rem",
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </div>
+                {s}
+              </button>
             ))}
           </div>
-        )}
+
+          {orders.length === 0 ? (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl px-6 py-12 text-center">
+              <p className="text-slate-500 text-sm">No {status_filter.toLowerCase()} orders</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {orders.map((order) => (
+                <div
+                  key={order.id}
+                  className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-4 flex justify-between items-center hover:border-slate-700 transition-colors"
+                >
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                        order.type === "BUY"
+                          ? "bg-green-500/10 text-green-400"
+                          : "bg-red-500/10 text-red-400"
+                      }`}>
+                        {order.type}
+                      </span>
+                      <span className="text-white font-medium text-sm">{order.symbol}</span>
+                    </div>
+                    <div className="text-slate-400 text-xs">
+                      Qty: {order.quantity}
+                      {order.price && <span className="ml-2">@ ${Number(order.price).toLocaleString()}</span>}
+                    </div>
+                    <div className="flex gap-3">
+                      {order.stopLoss && (
+                        <span className="text-amber-400/80 text-xs">SL {order.stopLoss}</span>
+                      )}
+                      {order.takeProfit && (
+                        <span className="text-green-400/80 text-xs">TP {order.takeProfit}</span>
+                      )}
+                    </div>
+                    <div className="text-slate-600 text-xs">
+                      {new Date(order.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                      order.status === "OPEN"
+                        ? "bg-green-500/10 text-green-400"
+                        : "bg-slate-800 text-slate-500"
+                    }`}>
+                      {order.status}
+                    </span>
+                    {order.status === "OPEN" && (
+                      <button
+                        onClick={() => handleCancelOrder(order.id)}
+                        className="text-xs px-3 py-1 rounded-lg text-red-400 hover:text-red-300 border border-red-900/50 hover:border-red-800 transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
