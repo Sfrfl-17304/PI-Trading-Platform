@@ -12,7 +12,7 @@ import java.time.Instant;
 @AllArgsConstructor
 public class OrderTriggeredEvent {
     private String orderId;
-    private Long userId;
+    private String userId;
     private String symbol;
     private String type;            // BUY ou SELL
     private double quantity;

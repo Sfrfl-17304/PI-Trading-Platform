@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Builder
 public class OrderResponse {
     private String id;
-    private Long userId;
+    private String userId;
     private String symbol;
     private OrderType type;
     private BigDecimal quantity;

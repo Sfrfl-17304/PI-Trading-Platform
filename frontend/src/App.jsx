@@ -24,7 +24,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+          <Route path="/orders" element={<><OrdersPage /></>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
