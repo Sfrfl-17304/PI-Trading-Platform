@@ -61,7 +61,7 @@ public class OrderCacheService {
 
         Order order = Order.builder()
                 .id(orderId)
-                .userId(Long.valueOf(entries.get("userId").toString()))
+                .userId(entries.get("userId").toString())
                 .symbol(entries.get("symbol").toString())
                 .type(OrderType.valueOf(entries.get("type").toString()))
                 .quantity(new BigDecimal(entries.get("quantity").toString()))

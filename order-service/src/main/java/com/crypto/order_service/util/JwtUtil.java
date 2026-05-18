@@ -18,15 +18,13 @@ public class JwtUtil {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public Long extractUserId(String authHeader) {
+    public String extractUserId(String authHeader) {
         String token = authHeader.replace("Bearer ", "");
         Claims claims = Jwts.parser()
                 .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-        // Selon ton User Service, le claim peut être "sub" ou "userId"
-        // Adapter au format réel
-        return Long.parseLong(claims.getSubject());
+        return claims.getSubject();
     }
 }

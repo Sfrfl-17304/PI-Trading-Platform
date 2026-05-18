@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
@@ -24,7 +25,7 @@ public class OrderController {
     public ResponseEntity<OrderResponse> createOrder(
             @RequestBody CreateOrderRequest request,
             @RequestHeader("Authorization") String authHeader) {
-        Long userId = jwtUtil.extractUserId(authHeader);
+        String userId = jwtUtil.extractUserId(authHeader);
         OrderResponse response = orderService.createOrder(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -33,7 +34,7 @@ public class OrderController {
     public ResponseEntity<List<OrderResponse>> getUserOrders(
             @RequestParam(required = false) OrderStatus status,
             @RequestHeader("Authorization") String authHeader) {
-        Long userId = jwtUtil.extractUserId(authHeader);
+        String userId = jwtUtil.extractUserId(authHeader);
         List<OrderResponse> orders = orderService.getUserOrders(userId, status);
         return ResponseEntity.ok(orders);
     }
@@ -42,7 +43,7 @@ public class OrderController {
     public ResponseEntity<Void> cancelOrder(
             @PathVariable String orderId,
             @RequestHeader("Authorization") String authHeader) {
-        Long userId = jwtUtil.extractUserId(authHeader);
+        String userId = jwtUtil.extractUserId(authHeader);
         orderService.cancelOrder(orderId, userId);
         return ResponseEntity.noContent().build();
     }

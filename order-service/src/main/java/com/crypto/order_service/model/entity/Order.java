@@ -21,7 +21,7 @@ public class Order {
     private String id;
 
     @Column(nullable = false)
-    private Long userId;
+    private String userId;
 
     @Column(nullable = false)
     private String symbol;

@@ -45,7 +45,7 @@ public class KafkaConsumerService {
             Map p = om.readValue(msg, Map.class);
             if (p.containsKey("userId")) {
                 String uid = p.get("userId").toString();
-                mt.convertAndSendToUser(uid, "/queue/orders", p);
+                mt.convertAndSend("/topic/orders/" + uid, p);
                 ns.saveNotification(uid, "Order updated", "ORDER_UPDATE");
             }
         } catch (Exception e) {

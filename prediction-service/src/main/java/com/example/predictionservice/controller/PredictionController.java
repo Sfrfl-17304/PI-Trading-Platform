@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/v1/predict")
 public class PredictionController {
@@ -47,10 +48,10 @@ public class PredictionController {
         // Fetch last 12 hours of data automatically in 15m intervals to get some good context
         Instant end = Instant.now();
         Instant start = end.minus(12, ChronoUnit.HOURS);
-        
+
         String url = String.format("%s/api/historical/prices?symbol=%s&start=%s&end=%s&interval=15m",
                 historicalServiceUrl, symbol, start.toString(), end.toString());
-        
+
         List<Double> prices = new ArrayList<>();
         try {
             Map response = restTemplate.getForObject(url, Map.class);
@@ -71,14 +72,14 @@ public class PredictionController {
 
     private Signal processAndSendSignal(String symbol, List<Double> prices) {
         Signal signal = consensusService.getConsensusSignal(symbol, prices);
-        
+
         try {
             String signalJson = objectMapper.writeValueAsString(signal);
             kafkaTemplate.send("prediction-events", symbol, signalJson);
         } catch (Exception e) {
             System.err.println("Failed to serialize or send signal to Kafka: " + e.getMessage());
         }
-        
+
         return signal;
     }
 }

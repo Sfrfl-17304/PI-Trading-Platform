@@ -11,7 +11,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BalanceUpdateEvent {
-    private Long userId;
+    private String userId;
     private double amount;          // positif pour crédit, négatif pour débit
     private String reason;          // "order_execution"
     private String referenceId;     // orderId

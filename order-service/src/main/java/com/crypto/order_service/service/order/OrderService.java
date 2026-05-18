@@ -27,7 +27,7 @@ public class OrderService {
     private final UserServiceClient userServiceClient;
 
     @Transactional
-    public OrderResponse createOrder(Long userId, CreateOrderRequest request) {
+    public OrderResponse createOrder(String userId, CreateOrderRequest request) {
         // 1. Validation métier
         if (request.getType() == OrderType.BUY) {
             if (request.getStopLoss() != null && request.getPrice() != null
@@ -77,7 +77,7 @@ public class OrderService {
         return OrderResponse.from(order);
     }
 
-    public List<OrderResponse> getUserOrders(Long userId, OrderStatus status) {
+    public List<OrderResponse> getUserOrders(String userId, OrderStatus status) {
         List<Order> orders = (status != null)
                 ? orderRepository.findByUserIdAndStatus(userId, status)
                 : orderRepository.findByUserId(userId); // à créer si besoin
@@ -85,7 +85,7 @@ public class OrderService {
     }
 
     @Transactional
-    public void cancelOrder(String orderId, Long userId) {
+    public void cancelOrder(String orderId, String userId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Ordre introuvable"));
         if (!order.getUserId().equals(userId)) {
